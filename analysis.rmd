@@ -6,32 +6,41 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 library(tidyMB)
+library(vegan)
 ```
 
 ```{r}
-ct <- readRDS("~/SGMB/Albina//PH_Analysis/count_table.rds") %>% 
+ct <- readRDS("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/count_table.rds") %>% 
   t() %>% as.data.frame() %>% rownames_to_column("sequence") %>% as_tibble()
-taxa <- readRDS("~/SGMB/Albina/PH_Analysis/taxa.rds") %>% 
+taxa <- readRDS("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/taxa.rds") %>% 
   as.data.frame() %>% rownames_to_column("sequence") %>% as_tibble()
-map <- read.table("~/SGMB/Albina/PH_Analysis/map.txt") %>% 
-  mutate(SampleID = gsub("\\.fastq\\.gz", "", V2))
+map <- read.table("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph.map", header = T, sep = "\t")
+info <- read.table("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/map.txt", header = T)
+map2 <- map %>% inner_join(info, by = "SampleID") %>% 
+  mutate(SampleID = gsub("\\.fastq\\.gz", "", RunID))
 ```
 
 ```{r}
 ph_data <- ct %>% 
   gather(SampleID, value, -sequence) %>% 
   inner_join(taxa, by = "sequence") %>% 
-  inner_join(map, by = "SampleID") %>% 
+  inner_join(map2, by = "SampleID") %>% 
   filter(Family != "Mitochondria" & Order != "Chloroplast" & Kingdom != "Eukaryota") %>% 
   group_by(SampleID) %>% 
-  mutate(depth = sum(value), RA = value / depth) %>% 
+  mutate(depth = sum(value), RA = (value / depth) * 1000, logRA = log2(RA + 1)) %>% 
   mutate(Phylum2 = NA) %>% 
-  mutate(Phylum2 = ifelse(Phylum == "Proteobacteria", as.character(Class), as.character(Phylum)))
+  mutate(Phylum2 = ifelse(Phylum == "Proteobacteria", as.character(Class), as.character(Phylum))) %>% 
+  group_by(sequence) %>% 
+  nest() %>% 
+  mutate(otu = paste("OTU", 1:nrow(.), sep = "")) %>% 
+  unnest() %>% 
+  select(-sequence)
 ```
 
 
 ```{r}
 ph_data %>% 
+  filter(Resourse == "nature") %>% 
   group_by(SampleID, Phylum2) %>% 
   summarise(phy_total = sum(RA)) %>% 
   group_by(Phylum2) %>% 
@@ -45,23 +54,10 @@ ph_data %>%
 ```
 
 ```{r}
-ph_data %>% 
-  filter(grepl("FIL", V1) | grepl("HAL", V1)) %>% 
-  separate(V1, into = c("Genotype", "number", "Comp"), sep = "\\.") %>% 
-  separate(Comp, into = c("Comp", "Year", "Rep")) %>% 
-  group_by(1) %>% 
-  nest() %>% 
-  mutate(pc = map(data, ~tidy_pcoa(samples = "SampleID", otus = "sequence")))
-  group_by(SampleID, Phylum2, Genotype, Comp) %>% 
-  summarise(phy_total = sum(RA)) %>% 
-  group_by(Phylum2) %>% 
-  nest() %>% 
-  mutate(total = map_dbl(data, ~sum(.x$phy_total, na.rm = T))) %>% 
-  top_n(10, total) %>% 
-  unnest(data) %>% 
-  ggplot(aes(SampleID, phy_total, fill = Phylum2)) +
-  geom_bar(stat = "identity") +
-  scale_fill_brewer(palette = "Spectral") +
-  facet_grid(.~Genotype + Comp, space = "free", scales = "free")
+pPC <- tidy_pcoa(ph_data %>% select(otu, Compartment, Genotype, Species, SampleID, Trt, logRA, Resourse), otus = "otu", keep_loadings = T, value = "logRA")
+pPC$axes %>% 
+  ggplot(aes(MDS1, MDS2, color = Genotype)) +
+  geom_point()
+
 ```
 
