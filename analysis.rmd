@@ -34,7 +34,12 @@ ph_data <- ct %>%
   nest() %>% 
   mutate(otu = paste("OTU", 1:nrow(.), sep = "")) %>% 
   unnest() %>% 
-  select(-sequence)
+  select(-sequence) %>% 
+  rename(Resource = Resourse)
+
+write_rds(ph_data, path = "~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph_data.rds")
+
+ph_data <- read_rds("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph_data.rds")
 ```
 
 
@@ -53,11 +58,21 @@ ph_data %>%
   scale_fill_brewer(palette = "Spectral")
 ```
 
+Let's try to get a feeling for what patterns are falling out of the data. We can do a PCoA to figure out if there are clustering patterns among variables in the data. 
+
 ```{r}
-pPC <- tidy_pcoa(ph_data %>% select(otu, Compartment, Genotype, Species, SampleID, Trt, logRA, Resourse), otus = "otu", keep_loadings = T, value = "logRA")
+pPC <- tidy_pcoa(ph_data %>% select(otu, Compartment, Genotype, Species, SampleID, Trt, logRA, Resource, Intensity), otus = "otu", keep_loadings = T, value = "logRA")
+```
+From what I remember, soil was collected from 2 sites. Hallii plants found growing there at the sites had their microbiomes collected and sequenced. Soil from the site was brought back to the greenhouse and used to inoculate plants. Let's first see if can see any patterns differentiating nature from the greenhouse.
+
+```{r}
 pPC$axes %>% 
-  ggplot(aes(MDS1, MDS2, color = Genotype)) +
-  geom_point()
+  ggplot(aes(MDS1, MDS2, color = Resource)) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_vline(xintercept = 0, linetype = "dotted") +
+  geom_point() +
+  theme_minimal()
 
 ```
 
+It looks like there are 3 groups: 1 big group on the left of the x-axis and there are 2 groups on the right of the x-axis
