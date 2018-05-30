@@ -75,4 +75,6 @@ pPC$axes %>%
 
 ```
 
-It looks like there are 3 groups: 1 big group on the left of the x-axis and there are 2 groups on the right of the x-axis
+It looks like there are 3 groups: 1 big group on the left of the x-axis and there are 2 groups on the right of the x-axis, but there seems to be no correlation with where these samples came from. We would expect to see a cluster for the hal site and a cluster for the fil site and potentially one or two more clusters for the greenhouse experiment. 
+
+Is it possible that somehow the tubes were mislabeled when they went to Esther?
