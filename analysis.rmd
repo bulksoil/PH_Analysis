@@ -43,21 +43,6 @@ ph_data <- read_rds("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph_data
 ```
 
 
-```{r}
-ph_data %>% 
-  filter(Resourse == "nature") %>% 
-  group_by(SampleID, Phylum2) %>% 
-  summarise(phy_total = sum(RA)) %>% 
-  group_by(Phylum2) %>% 
-  nest() %>% 
-  mutate(total = map_dbl(data, ~sum(.x$phy_total, na.rm = T))) %>% 
-  top_n(10, total) %>% 
-  unnest(data) %>% 
-  ggplot(aes(SampleID, phy_total, fill = Phylum2)) +
-  geom_bar(stat = "identity") +
-  scale_fill_brewer(palette = "Spectral")
-```
-
 Let's try to get a feeling for what patterns are falling out of the data. We can do a PCoA to figure out if there are clustering patterns among variables in the data. 
 
 ```{r}
