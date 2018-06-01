@@ -24,6 +24,7 @@ map2 <- map %>% inner_join(info, by = "SampleID") %>%
 ph_data <- ct %>% 
   gather(SampleID, value, -sequence) %>% 
   inner_join(taxa, by = "sequence") %>% 
+  mutate(SampleID = gsub("_sub_R1_filtered", "", SampleID)) %>% 
   inner_join(map2, by = "SampleID") %>% 
   filter(Family != "Mitochondria" & Order != "Chloroplast" & Kingdom != "Eukaryota") %>% 
   group_by(SampleID) %>% 
@@ -37,26 +38,28 @@ ph_data <- ct %>%
   select(-sequence) %>% 
   rename(Resource = Resourse)
 
-write_rds(ph_data, path = "~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph_data.rds")
+write_rds(ph_data, path = "~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph_data.rds", compress = "gz")
 
-ph_data <- read_rds("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph_data.rds")
+ph_data <- read_rds("~/SMB/Albina/2017 Spring Microbiome seq/PH_Analysis/ph_data.rds.gz")
 ```
 
 
 Let's try to get a feeling for what patterns are falling out of the data. We can do a PCoA to figure out if there are clustering patterns among variables in the data. 
 
 ```{r}
-pPC <- tidy_pcoa(ph_data %>% select(otu, Compartment, Genotype, Species, SampleID, Trt, logRA, Resource, Intensity), otus = "otu", keep_loadings = T, value = "logRA")
+pPC <- tidy_pcoa(ph_data %>% select(otu, Compartment, Genotype, Species, SampleID, Trt, logRA, Resource, Intensity, depth), otus = "otu", keep_loadings = T, value = "logRA")
 ```
 From what I remember, soil was collected from 2 sites. Hallii plants found growing there at the sites had their microbiomes collected and sequenced. Soil from the site was brought back to the greenhouse and used to inoculate plants. Let's first see if can see any patterns differentiating nature from the greenhouse.
 
 ```{r}
 pPC$axes %>% 
-  ggplot(aes(MDS1, MDS2, color = Resource)) +
+  filter(Resource == "nature") %>% 
+  ggplot(aes(MDS1, MDS2, color = Genotype)) +
   geom_hline(yintercept = 0, linetype = "dotted") +
   geom_vline(xintercept = 0, linetype = "dotted") +
   geom_point() +
-  theme_minimal()
+  theme_minimal() +
+  facet_grid(~Resource)
 
 ```
 
